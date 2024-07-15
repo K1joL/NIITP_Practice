@@ -4,7 +4,6 @@ namespace aux {
 using std::cerr;
 using std::endl;
 
-// Split XML file into tags according to nestLevel
 std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel,
                                   std::string pathToSave, bool sepFolders) {
     std::vector<std::string> outputFilePaths;
@@ -21,20 +20,25 @@ std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel,
     bool insideTag = false;
     std::string xmlFileName = xmlFilePath.substr(xmlFilePath.rfind('/') + 1,
                                                  xmlFilePath.rfind('.') - xmlFilePath.rfind('/') - 1);
-    // Create directories 
+    // Create directories
     if (!pathToSave.empty() && pathToSave.back() != '/')
         pathToSave.push_back('/');
     std::string pathToTags = pathToSave + "TempFiles/";
-    bool dirCreated = mkdir(pathToTags.c_str(), CODE_RWE) == 0;
-    if (!dirCreated && errno == EEXIST ){
-        pathToTags = pathToTags + "SplittedTags/";
-        mkdir((pathToTags).c_str(), CODE_RWE) == 0;
+    bool tfDirCreated = (mkdir(pathToTags.c_str(), CODE_RWE) == 0);
+    bool stDirCreated = true;
+    if (tfDirCreated || errno == EEXIST) {
+        pathToTags += "SplittedTags/";
+        stDirCreated = (mkdir(pathToTags.c_str(), CODE_RWE) == 0);
     }
     pathToTags += xmlFileName + '/';
-    dirCreated = mkdir(pathToTags.c_str(), CODE_RWE) == 0;
-    if (errno != EEXIST && dirCreated)
-        pathToTags = "";
-
+    bool docDirCreated = (mkdir(pathToTags.c_str(), CODE_RWE) == 0);
+    if (errno != EEXIST && !docDirCreated)
+        if (stDirCreated)
+            pathToTags = "TempFiles/SplittedTags/";
+        else if (tfDirCreated)
+            pathToTags = "TempFiles/";
+        else
+            pathToTags = "";
     while (std::getline(xmlFile, line)) {
         // std::cout << currentDeepLevel << " " << tagContent.str() << endl;
         if (line.find("<") != std::string::npos && currentDeepLevel != nestLevel) {
@@ -95,8 +99,6 @@ std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel,
     return outputFilePaths;
 }
 
-// allows do not include files and folders whose
-// name starts with a "."
 bool file_filter(std::string const& f) {
     if (f.empty()) return false;
 
@@ -109,6 +111,53 @@ bool file_filter(std::string const& f) {
     // return false if the first character of the filename is a .
     if (f[sep] == '.') return false;
     return true;
+}
+
+std::string createTorrentFile(const std::string& fullPathToTag, const std::string& docName) {
+    std::string creator_str = "libtorrent";
+    std::string comment_str;
+
+    // Create directory if needed
+    std::string outfile = fullPathToTag;
+    size_t index = fullPathToTag.find("SplittedTags");
+    if (index != std::string::npos)
+        outfile = outfile.replace(index, sizeof("SplittedTags") - 1, "Torrents");
+    mkdir((fullPathToTag.substr(0, index) + "Torrents").c_str(), CODE_RWE) == 0;
+    bool dirCreated = (mkdir((fullPathToTag.substr(0, index) + "Torrents/" + docName).c_str(), CODE_RWE) == 0);
+    if (errno != EEXIST && !dirCreated)
+        outfile = fullPathToTag.substr(0, fullPathToTag.rfind('.'));
+    outfile = outfile.substr(0, outfile.rfind('.')) + ".torrent";
+
+    // Prepare
+    lt::create_flags_t flags{};
+    flags |= lt::create_torrent::v2_only;
+    lt::file_storage fileStor;
+    lt::add_files(fileStor, fullPathToTag, aux::file_filter, flags);
+    if (fileStor.num_files() == 0) {
+        return "";
+    }
+    // fill the torrent with info
+    lt::create_torrent t(fileStor, 0, flags);
+    t.add_collection(docName);
+    auto const num = t.num_pieces();
+    lt::set_piece_hashes(t, fullPathToTag.substr(0, fullPathToTag.rfind('/')));
+    t.set_creator(creator_str.c_str());
+    if (!comment_str.empty()) {
+        t.set_comment(comment_str.c_str());
+    }
+
+    // Create the torrent and save the file
+    std::vector<char> torrent;
+    lt::bencode(back_inserter(torrent), t.generate());
+    if (!outfile.empty()) {
+        std::fstream out;
+        out.exceptions(std::ifstream::failbit);
+        out.open(outfile.c_str(), std::ios_base::out | std::ios_base::binary);
+        out.write(torrent.data(), int(torrent.size()));
+        out.close();
+    }
+
+    return outfile;
 }
 
 }  // namespace aux
