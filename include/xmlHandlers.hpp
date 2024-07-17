@@ -1,5 +1,5 @@
-#ifndef AUXILIARY_FUNCITONS_HPP
-#define AUXILIARY_FUNCITONS_HPP
+#ifndef XML_HANDLERS_HPP
+#define XML_HANDLERS_HPP
 
 #include <errno.h>
 #include <sys/stat.h>
@@ -12,12 +12,9 @@
 #include <string>
 #include <vector>
 
-#include <libtorrent/create_torrent.hpp>
-#include <libtorrent/magnet_uri.hpp>
+#include "constants.hpp"
 
-namespace aux {
-// 0777 : Read, write, and execute permissions for the owner, group, and others.
-#define CODE_RWE 0777
+namespace xmlhandler {
 
 // Split XML file into tags according to nestLevel
 std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel = 2,
@@ -27,9 +24,7 @@ std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel 
 // name starts with a "."
 bool file_filter(std::string const& f);
 
-// docName will be added to collection field
-std::string createTorrentFile(const std::string& fullPathToTag, const std::string& docName);
 
 }  // namespace aux
 
-#endif  //! AUXILIARY_FUNCITONS_HPP
+#endif  //! XML_HANDLERS_HPP
