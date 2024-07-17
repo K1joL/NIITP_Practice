@@ -130,7 +130,6 @@ std::string createTorrentFile(const std::string& fullPathToTag, const std::strin
 
     // Prepare
     lt::create_flags_t flags{};
-    flags |= lt::create_torrent::v2_only;
     lt::file_storage fileStor;
     lt::add_files(fileStor, fullPathToTag, aux::file_filter, flags);
     if (fileStor.num_files() == 0) {
@@ -139,6 +138,7 @@ std::string createTorrentFile(const std::string& fullPathToTag, const std::strin
     // fill the torrent with info
     lt::create_torrent t(fileStor, 0, flags);
     t.add_collection(docName);
+    // t.add_tracker("udp://tracker.opentrackr.org:1337/announce");
     auto const num = t.num_pieces();
     lt::set_piece_hashes(t, fullPathToTag.substr(0, fullPathToTag.rfind('/')));
     t.set_creator(creator_str.c_str());
