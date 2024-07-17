@@ -5,14 +5,14 @@ set( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/" 
 include( ODB )
 
 set(headers
-	src/dbtypes/Audio.hpp
-	src/dbtypes/Chat.hpp
-	src/dbtypes/Contact.hpp
-	src/dbtypes/Document.hpp
-	src/dbtypes/File.hpp
-	src/dbtypes/Location.hpp
-    src/dbtypes/User.hpp
-    src/dbtypes/Video.hpp
+	include/dbtypes/Audio.hpp
+	include/dbtypes/Chat.hpp
+	include/dbtypes/Contact.hpp
+	include/dbtypes/Document.hpp
+	include/dbtypes/File.hpp
+	include/dbtypes/Location.hpp
+    include/dbtypes/User.hpp
+    include/dbtypes/Video.hpp
 )
 
 odb_compile(
@@ -42,18 +42,23 @@ set(sources
 add_subdirectory(src)
 
 find_package(Threads REQUIRED)
+find_package(Boost REQUIRED)
 
 set(libraries
     odb 
     odb-pgsql
-	auxiliary
+	xmlHandlers
+	torHandlers
 	torrent-rasterbar
 	Threads::Threads
+	Boost::boost
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++14 -Wno-unknown-pragmas" )
 include_directories(src/dbtypes
-					include/)
+					include/dbtypes
+					include/
+					)
 
 add_executable(TransferSys src/main.cpp ${sources})
 target_link_libraries(TransferSys ${libraries})
