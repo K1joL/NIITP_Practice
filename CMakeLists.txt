@@ -47,11 +47,13 @@ find_package(Boost REQUIRED)
 set(libraries
     odb 
     odb-pgsql
-	xmlHandlers
-	torHandlers
 	torrent-rasterbar
 	Threads::Threads
 	Boost::boost
+
+	auxiliary
+	xmlHandlers
+	torHandlers
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++14 -Wno-unknown-pragmas" )
