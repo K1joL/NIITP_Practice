@@ -5,14 +5,15 @@ set( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/" 
 include( ODB )
 
 set(headers
-	include/dbtypes/Audio.hpp
-	include/dbtypes/Chat.hpp
-	include/dbtypes/Contact.hpp
 	include/dbtypes/Document.hpp
-	include/dbtypes/File.hpp
-	include/dbtypes/Location.hpp
-    include/dbtypes/User.hpp
-    include/dbtypes/Video.hpp
+	include/dbtypes/Message.hpp
+	include/dbtypes/MessageEntityTextUrl.hpp
+	include/dbtypes/MessageReplies.hpp
+	include/dbtypes/PeerChanel.hpp
+	include/dbtypes/Photo.hpp
+    include/dbtypes/ReplyMarkup.hpp
+    include/dbtypes/Poll.hpp
+    include/dbtypes/Sizes.hpp
 )
 
 odb_compile(
@@ -25,17 +26,19 @@ odb_compile(
 	SOURCE_SUFFIX ".cpp"
 	FILE_SUFFIX ".odb"
 	DEFAULT_POINTER "std::shared_ptr"
+	PROFILE "boost/date-time"
 )
 
 set(sources
-	src/dbtypes/Audio.cpp
-	src/dbtypes/Chat.cpp
-	src/dbtypes/Contact.cpp
 	src/dbtypes/Document.cpp
-	src/dbtypes/File.cpp
-	src/dbtypes/Location.cpp
-	src/dbtypes/User.cpp
-	src/dbtypes/Video.cpp
+	src/dbtypes/Message.cpp
+	src/dbtypes/MessageEntityTextUrl.cpp
+	src/dbtypes/MessageReplies.cpp
+	src/dbtypes/PeerChanel.cpp
+	src/dbtypes/Photo.cpp
+	src/dbtypes/ReplyMarkup.cpp
+	src/dbtypes/Poll.cpp
+	src/dbtypes/Sizes.cpp
 	${ODB_GENERATED_SOURCES}
 )
 
@@ -47,6 +50,7 @@ find_package(Boost REQUIRED)
 set(libraries
     odb 
     odb-pgsql
+	odb-boost
 	torrent-rasterbar
 	Threads::Threads
 	Boost::boost

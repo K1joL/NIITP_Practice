@@ -2,18 +2,7 @@
 
 namespace aux {
 
-void add_dht_routers(lt::session& ses, const std::vector<const node>& nodes) {
-    for (auto& node : nodes) {
-        ses.add_dht_router(node);
-    }
-}
-
-void add_dht_nodes(lt::session& ses, const std::vector<const node>& nodes) {
-    for (auto& node : nodes) {
-        ses.add_dht_node(node);
-    }
-}
-
+// returns True if loading is successful
 bool load_file(std::string const& filename, std::vector<char>& v, int limit) {
     std::fstream f(filename, std::ios_base::in | std::ios_base::binary);
     f.seekg(0, std::ios_base::end);
@@ -25,11 +14,51 @@ bool load_file(std::string const& filename, std::vector<char>& v, int limit) {
     f.read(v.data(), int(v.size()));
     return !f.fail();
 }
-
-int save_file(std::string const& filename, std::vector<char> const& v) {
+// returns True if saving is successful
+bool save_file(std::string const& filename, std::vector<char> const& v) {
     std::fstream f(filename, std::ios_base::trunc | std::ios_base::out | std::ios_base::binary);
     f.write(v.data(), int(v.size()));
     return !f.fail();
+}
+
+std::vector<std::pair<std::string, int>> readDHT(std::string const& filename) {
+    std::vector<char> readData;
+    std::vector<std::pair<std::string, int>> nodes;
+    if (filename.empty() || !load_file(filename, readData)) {
+        return nodes;
+    }
+    std::string currentIP;
+    std::string currentPort;
+    bool isPort = false;
+    for (int i = 0; i < readData.size(); i++) {
+        char ch = readData[i];
+        if (ch == ':') {
+            isPort = true;
+            continue;
+        }
+        if (isPort) {
+            currentPort += ch;
+        } else {
+            currentIP += ch;
+        }
+        if (ch == '\n' || (readData.size() - 1) == i) {
+            isPort = false;
+            nodes.push_back(std::make_pair(currentIP, std::stoi(currentPort)));
+            currentIP.clear();
+            currentPort.clear();
+            continue;
+        }
+    }
+    return nodes;
+}
+
+std::string makeStringDHTbootstrap(const std::vector<std::pair<std::string, int>>& nodes) {
+    std::string stringNodes;
+    for(auto &node : nodes)
+        stringNodes += node.first + ':' + std::to_string(node.second) + ',';
+    if (!stringNodes.empty())
+        stringNodes.pop_back();
+    return stringNodes;
 }
 
 }  // namespace aux

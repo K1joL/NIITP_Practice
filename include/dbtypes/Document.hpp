@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#pragma db value(std::vector<char>) type("BYTEA")
-
 // Document Class
 class Document {
 public:

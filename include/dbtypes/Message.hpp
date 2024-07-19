@@ -4,6 +4,7 @@
 #include <odb/core.hxx>
 #include <boost/date_time.hpp>
 
+
 class Message {
 public:
     Message() {}

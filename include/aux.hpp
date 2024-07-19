@@ -2,15 +2,17 @@
 #define AUXILIARY_HPP
 
 #include <libtorrent/session.hpp>
+#include <string>
+#include <vector>
+#include <utility>
+#include <iostream>
+namespace aux {
 
-namespace aux{
-
-using  node = std::pair<std::string, int>;
-
-void add_dht_routers(lt::session &ses, const std::vector<const node&> &nodes);
-void add_dht_nodes(lt::session &ses, const std::vector<const node&> &nodes);
 bool load_file(std::string const& filename, std::vector<char>& v, int limit = 8000000);
-int save_file(std::string const& filename, std::vector<char> const& v);
-}
+bool save_file(std::string const& filename, std::vector<char> const& v);
+std::vector<std::pair<std::string, int>> readDHT(std::string const& filename);
+std::string makeStringDHTbootstrap(const std::vector<std::pair<std::string, int>>& nodes);
 
-#endif //!AUXILIARY_HPP
+}  // namespace aux
+
+#endif  //! AUXILIARY_HPP
