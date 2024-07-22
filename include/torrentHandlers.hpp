@@ -2,6 +2,7 @@
 #define TORRENT_HANDLER_HPP
 
 #include <libtorrent/create_torrent.hpp>
+#include <libtorrent/file_storage.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include <string>
 

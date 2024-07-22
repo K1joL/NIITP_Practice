@@ -1,7 +1,7 @@
 #include "torrentHandlers.hpp"
 
 namespace torhandler {
-    
+
 std::string createTorrentFile(const std::string& fullPathToTag, const std::string& docName) {
     std::string creator_str = "libtorrent";
     std::string comment_str;
@@ -12,7 +12,8 @@ std::string createTorrentFile(const std::string& fullPathToTag, const std::strin
     if (index != std::string::npos)
         outfile = outfile.replace(index, sizeof("SplittedTags") - 1, "Torrents");
     mkdir((fullPathToTag.substr(0, index) + "Torrents").c_str(), myconst::CODE_RWE) == 0;
-    bool dirCreated = (mkdir((fullPathToTag.substr(0, index) + "Torrents/" + docName).c_str(), myconst::CODE_RWE) == 0);
+    bool dirCreated = (mkdir((fullPathToTag.substr(0, index) + "Torrents/" + docName).c_str(),
+                             myconst::CODE_RWE) == 0);
     if (errno != EEXIST && !dirCreated)
         outfile = fullPathToTag.substr(0, fullPathToTag.rfind('.'));
     outfile = outfile.substr(0, outfile.rfind('.')) + ".torrent";
