@@ -5,23 +5,131 @@ namespace xmlhandler {
 using std::cerr;
 using std::endl;
 
-std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel,
-                                  std::string pathToSave, bool sepFolders) {
-    std::vector<std::string> outputFilePaths;
+std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlFilePath) {
     std::ifstream xmlFile(xmlFilePath);
+    std::vector<std::shared_ptr<Tag>> tags;
+    std::vector<std::shared_ptr<Tag>> tagStack;  // Stack to track nesting
+    std::shared_ptr<Tag> currentTag = nullptr;
+    std::string line;
 
     if (!xmlFile.is_open()) {
         cerr << "Failed to open file!" << endl;
-        return outputFilePaths;
+        return tags;
     }
-    int currentDeepLevel = 0;
-    std::string line, tagName;
-    std::stringstream tagContent;
-    bool createNewFile = false;
-    bool insideTag = false;
-    std::string xmlFileName = xmlFilePath.substr(xmlFilePath.rfind('/') + 1,
-                                                 xmlFilePath.rfind('.') - xmlFilePath.rfind('/') - 1);
+
+    // xml processing
+    while (std::getline(xmlFile, line)) {
+        if (line.find("<?") != std::string::npos)
+            continue;
+        // Trim whitespace
+        line.erase(line.begin(), std::find_if_not(line.begin(), line.end(), isspace));
+        line.erase(std::find_if_not(line.rbegin(), line.rend(), isspace).base(), line.end());
+        // Handle opening tag
+        if (line.find('<') == 0 && line.find('>') != std::string::npos &&
+            line.find('/') == std::string::npos) {
+            // Extract tag name
+            std::string tagName = line.substr(1, line.find('>') - 1);
+            std::size_t attributeStart = tagName.find(' ');
+            if (attributeStart != std::string::npos) {
+                tagName = tagName.substr(0, attributeStart);
+            }
+            // Create new tag and add attributes
+            std::shared_ptr<Tag> newTag = std::make_shared<Tag>();
+            newTag->name = tagName;
+            // Parse attributes if found
+            if (line.find('=') != std::string::npos) {
+                std::stringstream ss(
+                    line.substr(line.find(' ') + 1, line.find('>') - line.find(' ') - 1));
+                std::string attribute;
+                while (std::getline(ss, attribute, ' ')) {
+                    std::size_t equalSign = attribute.find('=');
+                    if (equalSign != std::string::npos) {
+                        std::string attributeName = attribute.substr(0, equalSign);
+                        std::string attributeValue = attribute.substr(equalSign + 1);
+                        // Remove quotes
+                        attributeValue.erase(0, 1);
+                        attributeValue.erase(attributeValue.size() - 1, 1);
+                        newTag->attributes[attributeName] = attributeValue;
+                    }
+                }
+            }
+            // Add to parent's children
+            if (currentTag != nullptr)
+                currentTag->children.push_back(newTag);
+
+            // Push to stack and set current tag
+            tagStack.push_back(newTag);
+            if (currentTag == nullptr)
+                tags.push_back(newTag);
+            currentTag = tagStack.back();
+        }
+        // Handle closing tag
+        else if (line.find("</") == 0 && line.find('>') != std::string::npos) {
+            // Pop from stack
+            tagStack.pop_back();
+            currentTag = (tagStack.empty() ? nullptr : tagStack.back());
+        }
+        // Handle one-line tag
+        else if ((line.find('<') == 0 && line.find("/>") != std::string::npos) ||
+                 (std::count(line.begin(), line.end(), '<') == 2)) {
+            // Extract tag name and attributes
+            std::string tagName = line.substr(1, line.find('>') - 1);
+            std::size_t attributeStart = tagName.find(' ');
+            if (attributeStart != std::string::npos) {
+                tagName = tagName.substr(0, attributeStart);
+            }
+
+            std::shared_ptr<Tag> newTag = std::make_shared<Tag>();
+            newTag->name = tagName;
+
+            // Parse attributes if found
+            if (line.find('=') != std::string::npos) {
+                size_t attrEnd = line.find("/>");
+                if (attrEnd == std::string::npos)
+                    attrEnd = line.find(">");
+                std::stringstream ss(line.substr(line.find(' ') + 1, attrEnd - line.find(' ') - 1));
+                std::string attribute;
+                while (std::getline(ss, attribute, ' ')) {
+                    std::size_t equalSign = attribute.find('=');
+                    if (equalSign != std::string::npos) {
+                        std::string attributeName = attribute.substr(0, equalSign);
+                        std::string attributeValue = attribute.substr(equalSign + 1);
+                        // Remove quotes
+                        attributeValue.erase(0, 1);
+                        attributeValue.erase(attributeValue.size() - 1, 1);
+                        newTag->attributes[attributeName] = attributeValue;
+                    }
+                }
+            }
+            if (line.find("</") != std::string::npos)
+                newTag->content +=
+                    line.substr(line.find('>') + 1, line.find("</") - line.find('>') - 1);
+            // Add to parent's children
+            if (currentTag != nullptr)
+                currentTag->children.push_back(newTag);
+            if (currentTag == nullptr)
+                tags.push_back(newTag);
+        }
+        // Handle content
+        else if (currentTag != nullptr) {
+            currentTag->content += line;
+        }
+    }
+
+    xmlFile.close();
+    return tags;
+}
+
+std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestingLevel,
+                                  const std::string& savePath, bool sepFolders) {
+    std::vector<std::shared_ptr<Tag>> tags = getTags(xmlFilePath);
+    if (tags.empty())
+        return std::vector<std::string>();
     // Create directories
+    std::vector<std::string> outputFilePaths;
+    std::string xmlFileName = xmlFilePath.substr(
+        xmlFilePath.rfind('/') + 1, xmlFilePath.rfind('.') - xmlFilePath.rfind('/') - 1);
+    std::string pathToSave;
     if (!pathToSave.empty() && pathToSave.back() != '/')
         pathToSave.push_back('/');
     std::string pathToTags = pathToSave + "TempFiles/";
@@ -40,68 +148,70 @@ std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestLevel,
             pathToTags = "TempFiles/";
         else
             pathToTags = "";
-    while (std::getline(xmlFile, line)) {
-        // std::cout << currentDeepLevel << " " << tagContent.str() << endl;
-        if (line.find("<") != std::string::npos && currentDeepLevel != nestLevel) {
-            // Start of a tag
-            size_t start = line.find("<");
-            size_t end = line.find(">");
+    // Tags processing
+    std::stringstream tagContent;
+    std::queue<std::pair<std::shared_ptr<xmlhandler::Tag>, int>> queue;
+    
+    for (const auto& tag : tags) {
+        queue.push({tag, 0});
+    }
+    while (!queue.empty()) {
+        auto currentTag = queue.front().first;
+        auto currentLevel = queue.front().second;
+        queue.pop();
 
-            if (start != std::string::npos && line[start + 1] == '?')
-                continue;
-
-            if (start != std::string::npos && end != std::string::npos && currentDeepLevel < nestLevel) {
-                bool oneline = (std::count(line.begin(), line.end(), '<') == 2);
-                tagName = line.substr(start + 1, end - start - 1);
-                if (oneline) {
-                    size_t startValue = line.find('>');
-                    size_t endValue = line.find_last_of('<');
-                    tagContent << line.substr(startValue + 1, endValue - startValue - 1) << "\n";
-                    tagName = '/' + tagName;
-                }
-                // Check if it's a closing tag
-                if (tagName[0] == '/') {
-                    insideTag = false;
-                    createNewFile = true;
-                } else {
-                    insideTag = true;
-                    currentDeepLevel++;
-                }
-            }
-        } else if (insideTag) {
-            // Append content to the current tag
-            if (line.find("</" + tagName + '>') != std::string::npos) {
-                tagName = '/' + tagName;
-                createNewFile = true;
-            } else
-                tagContent << line << "\n";
-        }
-        if (createNewFile) {
-            currentDeepLevel--;
-            insideTag = false;
-            createNewFile = false;
+        if (currentLevel == nestingLevel) {
+            traverseTag(currentTag, tagContent);
             if (!tagContent.str().empty()) {
                 // Create new file
-                std::string newFileName = pathToTags + tagName.substr(1) + ".xml";
+                std::string newFileName = pathToTags + currentTag->name;
                 std::ofstream newFile(newFileName);
-                newFile << "<" << tagName.substr(1) << ">" << "\n"
-                        << tagContent.str() << "</" << tagName.substr(1) << ">";
+                newFile << tagContent.str();
                 newFile.close();
-
-                outputFilePaths.push_back(newFileName);
-
+                outputFilePaths.push_back(newFileName); // add new file to result
                 tagContent.str("");  // Clear content for next tag
-                continue;
+            }
+        } else if (currentLevel < nestingLevel) {
+            // Добавляем детей в очередь
+            for (const auto& child : currentTag->children) {
+                queue.push({child, currentLevel + 1});
             }
         }
     }
 
-    xmlFile.close();
     return outputFilePaths;
 }
 
+void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int startLevel) {
+    static int nestingLevel = 0;
+    ++nestingLevel;
+    if (nestingLevel < startLevel) {
+        for (auto& ch : tag->children)
+            traverseTag(ch, ss, startLevel);
+        return;
+    }
+    ss << std::string(nestingLevel, '\t') << "<" << tag->name;
+    for (const auto& attr : tag->attributes) {
+        ss << " " << attr.first << "=\"" << attr.second << "\"";
+    }
+    if (!tag->children.empty()) {
+        for (auto& ch : tag->children)
+            std::cout << " ch " << ch->name << std::endl;
+        ss << ">\n";
+        for (const auto child : tag->children) {
+            traverseTag(child, ss, startLevel);
+        }
+
+        ss << std::string(nestingLevel, '\t') << "</" << tag->name << ">\n" << std::endl;
+    } else {
+        ss << ">" << tag->content << "</" << tag->name << ">\n" << std::endl;
+    }
+    --nestingLevel;
+}
+
 bool file_filter(std::string const& f) {
-    if (f.empty()) return false;
+    if (f.empty())
+        return false;
 
     size_t sep = f.rfind('/');
     if (sep != std::string::npos)
@@ -110,8 +220,9 @@ bool file_filter(std::string const& f) {
         ++sep;
 
     // return false if the first character of the filename is a .
-    if (f[sep] == '.') return false;
+    if (f[sep] == '.')
+        return false;
     return true;
 }
 
-}  // namespace aux
+}  // namespace xmlhandler
