@@ -21,7 +21,7 @@ std::string createTorrentFile(const std::string& fullPathToTag, const std::strin
     // Prepare
     lt::create_flags_t flags{};
     lt::file_storage fileStor;
-    lt::add_files(fileStor, fullPathToTag, xmlhandler::file_filter, flags);
+    lt::add_files(fileStor, fullPathToTag, aux::file_filter, flags);
     if (fileStor.num_files() == 0) {
         return "";
     }

@@ -7,7 +7,7 @@
 #include <string>
 
 #include "constants.hpp"
-#include "xmlHandlers.hpp"
+#include "aux.hpp"
 
 namespace torhandler {
 

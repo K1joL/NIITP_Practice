@@ -32,10 +32,6 @@ std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestingLev
                                   const std::string& savePath = "", bool sepFolders = true);
 void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int startLevel = 0);
 
-// allows do not include files and folders whose
-// name starts with a "."
-bool file_filter(std::string const& f);
-
 }  // namespace xmlhandler
 
 #endif  //! XML_HANDLERS_HPP

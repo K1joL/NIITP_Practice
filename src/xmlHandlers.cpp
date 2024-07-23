@@ -195,8 +195,6 @@ void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int star
         ss << " " << attr.first << "=\"" << attr.second << "\"";
     }
     if (!tag->children.empty()) {
-        for (auto& ch : tag->children)
-            std::cout << " ch " << ch->name << std::endl;
         ss << ">\n";
         for (const auto child : tag->children) {
             traverseTag(child, ss, startLevel);
@@ -207,22 +205,6 @@ void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int star
         ss << ">" << tag->content << "</" << tag->name << ">\n" << std::endl;
     }
     --nestingLevel;
-}
-
-bool file_filter(std::string const& f) {
-    if (f.empty())
-        return false;
-
-    size_t sep = f.rfind('/');
-    if (sep != std::string::npos)
-        sep = 0;
-    else
-        ++sep;
-
-    // return false if the first character of the filename is a .
-    if (f[sep] == '.')
-        return false;
-    return true;
 }
 
 }  // namespace xmlhandler
