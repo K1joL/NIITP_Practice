@@ -1,0 +1,50 @@
+@startuml
+
+object Main{
+Главный модуль программы
+}
+
+object ORMTypes{
+ORM модуль реализации объектов БД
+}
+
+object xmlHandlers{
+Модуль обработки файлов формата xml 
+}
+
+object torrentHandlers{
+Модуль обработки файлов формата torrent
+}
+
+object httpServer{
+Модуль реализации HTTP сервера для\nобмена заголовочными файлами
+}
+
+object Auxiliary{
+Модуль вспомогательных функций
+}
+
+object constants{
+Модуль констант
+}
+
+object baseHandler{
+Модуль обработки запросов информации из базы данных
+}
+
+object jinja2{
+Модуль обработки шаблонов xml
+}
+
+constants <-down- torrentHandlers : inlcude
+constants <-down- xmlHandlers : inlcude
+baseHandler <-down- Main : inlcude
+xmlHandlers <-down- Main : inlcude
+torrentHandlers <-down- Main : inlcude
+Auxiliary<-down- Main : inlcude
+httpServer<-down- Main : inlcude
+Auxiliary <-down- torrentHandlers : include
+baseHandler -up-> ORMTypes : include
+Main -> jinja2 : include
+
+@enduml

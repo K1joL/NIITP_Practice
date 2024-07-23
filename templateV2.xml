@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DocInfo>
+{% set header = docinfo['header'] %} 
+	<Header MessageID="{{header['messageid']}}" Version="1.0" Tine="{{header['time']}}" MessageType="MainDoc" ResourceID="{{header['resurceid']}}">
+	{# Контейнер для информации об отправителе сообщения Sender #}
+	{% set sender = docinfo['sender'] %}
+		<Sender>
+			<Contact>
+				<Organization UID="{{sender['organization']}}"/>
+				<ShortName>{{sender['shortname']}}</ShortName>
+				<FullName>{{sender['fullname']}}</FullName>
+				<OfficialPerson>
+					<Post>{{sender['post']}}</Post>
+					<Index>{{sender['index']}}</Index>
+				</OfficialPerson>
+				<Econtact>{{sender['econtact']}}</Econtact>
+			</Contact>
+			<EDMS UID="{{sender['edms_uid']}}">{{sender['edms']}}</EDMS>
+		</Sender>
+		{# Контейнер для информации о получателе сообщения recepient#}
+		{% set recepient = docinfo['recepient'] %} 
+		<Recepient>
+			<Contact>
+				<Organization UID="{{recepient['organization']}}"/>
+				<ShortName>{{recepient['shortname']}}</ShortName>
+				<FullName>{{recepient['fullname']}}</FullName>
+				<OfficialPerson>
+					<Post>{{recepient['post']}}</Post> 
+					<Index>{{recepient['index']}}</Index> 
+				</OfficialPerson>
+				<Econtact> {{recepient['econtact']}}</Econtact>
+			</Contact>
+			<EDMS UID="{{recepient['edms_uid']}}">{{recepient['edms']}}</EDMS>
+		</Recepient>
+	</Header>
+	{ Контейнер для информации о пересылаемом документе DocumentList #} 
+	<DocumentList>
+		{% set documentlist = docinfo['documentlist'] %} 
+		<Document Document ID="{{documentlist['documentid']}}" Type="Created" MainDocument="true">
+			<RegistrationInfo>
+				{# Number исходящий номер документа #} 
+                <Number>{{documentlist['number']}}</Number>
+				<Date>{{documentlist['date']}}</Date>
+			</RegistrationInfo>
+			<Consists UID="{{documentlist ['consists']}}"/> 
+			<Annotation>{{documentlist['annotation']}}</Annotation>
+			{# Rubric UID - код формы документа код берется из классификатора #}
+			<Rubric UID="{{documentlist['rubric']}}"/>
+			{% set author = docinfo['author'] %} 
+			<Author>
+				<Contact>
+					<Organization UID="{{author['organization']}}"/>
+					<ShortName>{{author['shortname']}}</ShortName>
+					<FullName>{{author['fullname']}}</FullName>
+					<OfficialPerson>
+						<Post>{{author['post']}}</Post>
+						<Index>{{author['index']}}</Index>
+					</OfficialPerson>
+					<Econtact>{{author['econtact']}}</Econtact>
+				</Contact>
+			</Author>
+			{% set addressee = docinfo['addressee'] %} 
+			<Addressee>
+				<Contact>
+					<Organization UID="{{addressee['organization']}}"/>
+					<ShortName>{{addressee['shortname']}}</ShortName>
+					<FullName>{{addressee['fullname']}}</FullName>
+					<OfficialPerson>
+						<Post>{{addressee['post']}}</Post>
+						<Index>{{addressee['index']}}</Index>
+					</OfficialPerson>
+					<Econtact>{{addressee['econtact']}}</Econtact>
+				</Contact>
+			</Addressee>
+		
+	{% if docinfo['parts'] %}
+		{% for part in docinfo['parts'] %}
+			{# В словаре содержится информация либо о хэш суммах, либо информация №}
+			{% if part['hash'] %}
+			<AdditionalField Name="{{part['name']}}" Type="{{part['type']}}">
+				<Hashsum>{{part['hash']}}</Hashsum>
+			</AdditionalField>
+			{% elif part['fields'] %}
+				{% for field in part['fields'] %}
+			<AdditionalField Name="{{part['name']}}" Type="{{part['type']}}">
+				<Info>
+					<{{field['name']}}>{{field['value']}}</{{field['name'}}>
+				</Info>
+			</AdditionalField>
+				{% endfor %}
+			{% endif %}
+		{% endfor %}
+	{% endif %}
+		</Document>
+	</DocumentList>
+</DocInfo>

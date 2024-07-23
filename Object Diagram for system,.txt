@@ -1,0 +1,52 @@
+@startuml
+
+node Отправитель as s{
+	database О.PostgreSQL as ssql
+	node О.ORM as sorm
+	node О.БизнесЛогика as sbl{
+ 	[О.Клиент] as sc
+ 	[О.Сервер] as ss
+ 	}
+	folder О.ВременныеФайлы
+}
+node Получатель as r{
+	database П.PostgreSQL as rsql
+	node П.ORM as rorm
+	node П.БизнесЛогика as rbl{
+ 	[П.Клиент] as rc
+ 	[П.Сервер] as rs
+ 	}
+	folder П.ВременныеФайлы as rtemp
+}
+node Раздающий as u{
+	database Р.PostgreSQL as usql
+	node Р.ORM as uorm
+	node Р.БизнесЛогика as ubl{
+ 	[Р.Клиент] as uc
+ 	[Р.Сервер] as us
+ 	}
+	folder Р.ВременныеФайлы 
+}
+
+node DHT
+
+rc --> DHT : Поиск пиров
+rsql <-up-  rorm : Обращается к БД
+rorm <-right- rbl : Сохранение\nдокумента
+rc -down-> rtemp : Проверка\nзагружаемых\nфайлов
+
+ss -up-> DHT : Становится источником
+ssql <-up-  sorm : Обращается к БД
+sorm <-down- sbl : Сохранение\nдокумента
+sbl -> sorm : Формирование\nзаголовочного файла,\nсоставных частей\nи документа
+
+us -up-> DHT : Становится источником
+usql <-up-  uorm : Обращается к БД
+uorm <-down- ubl : Сохранение\nдокумента
+ubl -> uorm : формирование составных\nчастей и документа
+
+ss --> rc : Отправка\nзаголовочного\nфайла по http
+ss --> rc : Передача составных\nчастей по протоколу\nbittorrent
+us --> rc : Передача составных\nчастей по протоколу\nbittorrent
+
+@enduml
