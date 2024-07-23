@@ -16,18 +16,19 @@ bool load_file(std::string const& filename, std::vector<char>& v, int limit) {
     return !f.fail();
 }
 
-bool save_file(std::string const& filename, std::vector<char> const& v) {
+bool save_file(std::string const& filename, const char *data) {
     std::fstream f(filename, std::ios_base::trunc | std::ios_base::out |
                                  std::ios_base::binary);
-    f.write(v.data(), int(v.size()));
+    f.write(data, sizeof(data));
     return !f.fail();
 }
 
+bool save_file(std::string const& filename, std::vector<char> const& v) {
+    return save_file(filename, v.data());
+}
+
 bool save_file(std::string const& filename, std::string const& str) {
-    std::fstream f(filename, std::ios_base::trunc | std::ios_base::out |
-                                 std::ios_base::binary);
-    f.write(str.data(), int(str.size()));
-    return !f.fail();
+    return save_file(filename, str.data());
 }
 
 std::vector<std::pair<std::string, int>> readDHT(std::string const& filename) {
@@ -70,5 +71,22 @@ std::string makeStringDHTbootstrap(
         stringNodes.pop_back();
     return stringNodes;
 }
+
+bool file_filter(std::string const& f) {
+    if (f.empty())
+        return false;
+
+    size_t sep = f.rfind('/');
+    if (sep != std::string::npos)
+        sep = 0;
+    else
+        ++sep;
+
+    // return false if the first character of the filename is a .
+    if (f[sep] == '.')
+        return false;
+    return true;
+}
+
 
 }  // namespace aux
