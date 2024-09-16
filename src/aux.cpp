@@ -19,7 +19,7 @@ bool load_file(std::string const& filename, std::vector<char>& v, int limit) {
 bool save_file(std::string const& filename, const char *data) {
     std::fstream f(filename, std::ios_base::trunc | std::ios_base::out |
                                  std::ios_base::binary);
-    f.write(data, sizeof(data));
+    f.write(data, strlen(data));
     return !f.fail();
 }
 
