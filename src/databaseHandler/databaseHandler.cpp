@@ -2,26 +2,8 @@
 
 namespace dbHandler {
 
-int test() {
-    std::string pg = "postgres";
-    std::shared_ptr<database> db(new odb::pgsql::database(pg, pg, "test"));
-
-    typedef odb::query<Document> query;
-    typedef odb::result<Document> result;
-    {
-        transaction t(db->begin());
-        result r(db->query<Document>(query::documentid > 4));
-        if (!r.empty())
-            for (result::iterator i(r.begin()); i != r.end(); ++i)
-                std::cout << i->getId() << i->getNumber() << std::endl;
-        t.commit();
-    }
-    return 0;
-}
-
-jinja2::ValuesMap getValuesMapFromDocument(const std::string &docNumber,
-                        const std::string &dbUser, const std::string &dbPass,
-                        const std::string &dbName) {
+jinja2::ValuesMap getValuesMapFromDocument(const std::string &docNumber, const std::string &dbUser,
+                                           const std::string &dbPass, const std::string &dbName) {
     std::shared_ptr<database> db(new odb::pgsql::database(dbUser, dbPass, dbName));
     jinja2::ValuesMap mDocinfo;
     jinja2::ValuesMap mHeader;
@@ -149,7 +131,7 @@ std::vector<std::shared_ptr<Part>> selectParts(const std::shared_ptr<database> d
             parts.push_back(std::make_shared<Part>(*it));
         }
     t.commit();
-    return parts;
+    return std::move(parts);
 }
 
 std::vector<std::shared_ptr<Field>> selectFields(const std::shared_ptr<database> db,
@@ -165,7 +147,58 @@ std::vector<std::shared_ptr<Field>> selectFields(const std::shared_ptr<database>
             fields.push_back(std::make_shared<Field>(*it));
         }
     t.commit();
-    return fields;
+    return std::move(fields);
+}
+
+std::shared_ptr<Part> selectPart(const std::shared_ptr<database> db, const std::string &hash) {
+    typedef odb::query<Part> query;
+    typedef odb::result<Part> result;
+    std::shared_ptr<Part> part;
+    transaction t(db->begin());
+    part = db->query_one<Part>(query::hash == hash);
+    t.commit();
+    return part;
+}
+
+jinja2::ValuesList getPartsFromDocument(const std::string &docNumber,
+                                        const jinja2::ValuesList &partsList,
+                                        const std::string &dbUser, const std::string &dbPass,
+                                        const std::string &dbName) {
+    std::shared_ptr<database> db(new odb::pgsql::database(dbUser, dbPass, dbName));
+    std::shared_ptr<Document> doc;
+    std::shared_ptr<DocInfo> docinfo;
+    jinja2::ValuesList mParts;
+    if (partsList.empty()) {  
+        // select document
+        doc = selectDocument(db, docNumber);
+        // select docinfo
+        docinfo = selectDocInfo(db, doc->getId());
+        // select parts
+        for (auto &part : selectParts(db, docinfo->getId())) {
+            jinja2::ValuesMap tempPart;
+            std::vector<std::string> partData = part->getData();
+            for (int i = 0; i < tmplkey::PART_HASH.size(); ++i)
+                tempPart[tmplkey::PART_HASH[i]] = partData[i];
+            mParts.emplace_back(std::move(tempPart));
+        }
+    } else
+        mParts = partsList;
+
+    for (auto &part : mParts) {
+        jinja2::ValuesList fields;
+        std::shared_ptr<Part> dbPart = selectPart(db, part.asMap().at("hash").asString());
+        // select fields
+        for(auto &field : selectFields(db, dbPart->getPartId())){
+            // filling the map
+            jinja2::ValuesMap mField;
+            for(int i = 0; i < tmplkey::FIELD.size(); ++i)
+                mField[tmplkey::FIELD[i]] = field->getData()[i];
+            fields.push_back(std::move(mField));
+        }
+        part.asMap().emplace("fields", fields);
+    }
+
+    return mParts;
 }
 
 }  // namespace dbHandler
