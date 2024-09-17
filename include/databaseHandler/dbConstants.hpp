@@ -17,7 +17,7 @@ const vector<string> ADDRESSEE = {"organization", "shortname", "fullname", "post
 const vector<string> DOCUMENTLIST = {"documentid", "number", "date", "consists", "annotation", "rubric"};
 const vector<string> PART_HASH = {"name", "type", "hash"};
 const vector<string> PART_FIELDS = {"name", "type", "fields"};
-const vector<string> FIELDS = {"name", "value"};
+const vector<string> FIELD = {"name", "value"};
 
 }  // namespace tmplkey
 
