@@ -19,7 +19,6 @@ public:
     std::string getValue() const { return m_value; }
     std::vector<std::string> getData() {
         std::vector<std::string> v;
-        v.push_back(std::to_string(m_partid));
         v.push_back(m_name);
         v.push_back(m_value);
         return v;
