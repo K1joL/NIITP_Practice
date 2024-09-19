@@ -33,7 +33,7 @@ void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int star
 std::vector<std::string> splitXML(const std::string& xmlContent, int nestingLevel);
 std::vector<std::string> splitDocument(const std::string& xmlDocPath,
                                        const std::string savePath = myconst::DEFAULT_TAGS_PATH,
-                                       bool separatedFolders = true);
+                                       bool separatedFolders = true, int nestingLevel = 2);
 std::vector<std::string> createPartXmls(
     const jinja2::ValuesList& parts, jinja2::Template& tmpl,
     const std::string& pathToDocTags = myconst::DEFAULT_TAGS_PATH);

@@ -147,7 +147,7 @@ std::vector<std::string> splitXML(const std::string& xmlContent, int nestingLeve
 }
 
 std::vector<std::string> splitDocument(const std::string& xmlDocPath, const std::string savePath,
-                                       bool separatedFolders) {
+                                       bool separatedFolders, int nestingLevel) {
     // read file
     std::ifstream docFile(xmlDocPath);
     if (!docFile.is_open()) {
@@ -158,7 +158,7 @@ std::vector<std::string> splitDocument(const std::string& xmlDocPath, const std:
     std::string line;
     while (std::getline(docFile, line))
         docContent += line + '\n';
-    std::vector<std::string> splitXmls = splitXML(docContent, 2);
+    std::vector<std::string> splitXmls = splitXML(docContent, nestingLevel);
     if (splitXmls.empty())
         return std::vector<std::string>();
 
@@ -181,8 +181,13 @@ std::vector<std::string> splitDocument(const std::string& xmlDocPath, const std:
         int startName = xml.find_first_of('<') + 1;
         int nameSize = xml.find_first_of("> ") - startName;
 
-        std::string newFilename = pathToSave + xml.substr(startName, nameSize) + ".xml";
-        std::cout << newFilename << std::endl;
+        std::string newFilename = xml.substr(startName, nameSize);
+        if(newFilename.find("AdditionalField") != std::string::npos){
+            startName = xml.find("<Hashsum>") + sizeof("<Hashsum>") - 1;
+            int nameSize = xml.rfind("</Hashsum>") - startName;
+            newFilename = "Part-" + xml.substr(startName, nameSize);
+            }
+        newFilename = pathToSave + newFilename + ".xml";
         aux::save_file(newFilename, xml);
         filePaths.push_back(newFilename);
     }
@@ -207,7 +212,7 @@ std::vector<std::string> createPartXmls(const jinja2::ValuesList& parts, jinja2:
         jinja2::ValuesMap temp;
         temp["part"] = part;
         std::string result = tmpl.RenderAsString(temp).value();
-        std::string filename = pathToSave + "part-" + part.asMap().at("hash").asString() + ".xml";
+        std::string filename = pathToSave + "FullPart-" + part.asMap().at("hash").asString() + ".xml";
         aux::save_file(filename, result);
         filePaths.push_back(filename);
     }
@@ -232,9 +237,9 @@ void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int star
             traverseTag(child, ss, startLevel);
         }
 
-        ss << std::string(nestingLevel, '\t') << "</" << tag->name << ">\n" << std::endl;
+        ss << std::string(nestingLevel, '\t') << "</" << tag->name << ">" << std::endl;
     } else {
-        ss << ">" << tag->content << "</" << tag->name << ">\n" << std::endl;
+        ss << ">" << tag->content << "</" << tag->name << ">" << std::endl;
     }
     --nestingLevel;
 }
