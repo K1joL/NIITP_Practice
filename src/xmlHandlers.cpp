@@ -5,20 +5,14 @@ namespace xmlhandler {
 using std::cerr;
 using std::endl;
 
-std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlFilePath) {
-    std::ifstream xmlFile(xmlFilePath);
+std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlContent) {
     std::vector<std::shared_ptr<Tag>> tags;
     std::vector<std::shared_ptr<Tag>> tagStack;  // Stack to track nesting
     std::shared_ptr<Tag> currentTag = nullptr;
     std::string line;
-
-    if (!xmlFile.is_open()) {
-        cerr << "Failed to open file!" << endl;
-        return tags;
-    }
-
+    std::istringstream content(xmlContent);
     // xml processing
-    while (std::getline(xmlFile, line)) {
+    while (std::getline(content, line)) {
         if (line.find("<?") != std::string::npos)
             continue;
         // Trim whitespace
@@ -115,43 +109,18 @@ std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlFilePath) {
             currentTag->content += line;
         }
     }
-
-    xmlFile.close();
-    return tags;
+    return std::move(tags);
 }
 
-std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestingLevel,
-                                  const std::string& savePath, bool sepFolders) {
-    std::vector<std::shared_ptr<Tag>> tags = getTags(xmlFilePath);
+std::vector<std::string> splitXML(const std::string& xmlContent, int nestingLevel) {
+    std::vector<std::shared_ptr<Tag>> tags = getTags(xmlContent);
     if (tags.empty())
         return std::vector<std::string>();
-    // Create directories
-    std::vector<std::string> outputFilePaths;
-    std::string xmlFileName = xmlFilePath.substr(
-        xmlFilePath.rfind('/') + 1, xmlFilePath.rfind('.') - xmlFilePath.rfind('/') - 1);
-    std::string pathToSave;
-    if (!pathToSave.empty() && pathToSave.back() != '/')
-        pathToSave.push_back('/');
-    std::string pathToTags = pathToSave + "TempFiles/";
-    bool tfDirCreated = (mkdir(pathToTags.c_str(), myconst::CODE_RWE) == 0);
-    bool stDirCreated = true;
-    if (tfDirCreated || errno == EEXIST) {
-        pathToTags += "SplittedTags/";
-        stDirCreated = (mkdir(pathToTags.c_str(), myconst::CODE_RWE) == 0);
-    }
-    pathToTags += xmlFileName + '/';
-    bool docDirCreated = (mkdir(pathToTags.c_str(), myconst::CODE_RWE) == 0);
-    if (errno != EEXIST && !docDirCreated)
-        if (stDirCreated)
-            pathToTags = "TempFiles/SplittedTags/";
-        else if (tfDirCreated)
-            pathToTags = "TempFiles/";
-        else
-            pathToTags = "";
+
     // Tags processing
     std::stringstream tagContent;
     std::queue<std::pair<std::shared_ptr<xmlhandler::Tag>, int>> queue;
-    
+    std::vector<std::string> splitXmls;
     for (const auto& tag : tags) {
         queue.push({tag, 0});
     }
@@ -163,23 +132,86 @@ std::vector<std::string> splitXML(const std::string& xmlFilePath, int nestingLev
         if (currentLevel == nestingLevel) {
             traverseTag(currentTag, tagContent);
             if (!tagContent.str().empty()) {
-                // Create new file
-                std::string newFileName = pathToTags + currentTag->name;
-                std::ofstream newFile(newFileName);
-                newFile << tagContent.str();
-                newFile.close();
-                outputFilePaths.push_back(newFileName); // add new file to result
+                splitXmls.push_back(tagContent.str());
                 tagContent.str("");  // Clear content for next tag
             }
         } else if (currentLevel < nestingLevel) {
-            // Добавляем детей в очередь
+            // add child tags to queue
             for (const auto& child : currentTag->children) {
                 queue.push({child, currentLevel + 1});
             }
         }
     }
 
-    return outputFilePaths;
+    return std::move(splitXmls);
+}
+
+std::vector<std::string> splitDocument(const std::string& xmlDocPath, const std::string savePath,
+                                       bool separatedFolders) {
+    // read file
+    std::ifstream docFile(xmlDocPath);
+    if (!docFile.is_open()) {
+        std::cerr << "Error: could not open document " << xmlDocPath << '!' << std::endl;
+        return std::vector<std::string>();
+    }
+    std::string docContent;
+    std::string line;
+    while (std::getline(docFile, line))
+        docContent += line + '\n';
+    std::vector<std::string> splitXmls = splitXML(docContent, 2);
+    if (splitXmls.empty())
+        return std::vector<std::string>();
+
+    // Create directories
+    std::string pathToSave = savePath;
+    if (pathToSave.back() != '/')
+        pathToSave += '/';
+    // add document filename to directory name
+    if (savePath == myconst::DEFAULT_TAGS_PATH) {
+        int startName = xmlDocPath.rfind('/') + 1;
+        int nameSize = xmlDocPath.rfind('.') - startName - 1;
+        pathToSave += xmlDocPath.substr(startName, nameSize);
+    }
+    if (!aux::makeDirectory(pathToSave))
+        return std::vector<std::string>();
+
+    // Create Files
+    std::vector<std::string> filePaths;
+    for (auto& xml : splitXmls) {
+        int startName = xml.find_first_of('<') + 1;
+        int nameSize = xml.find_first_of("> ") - startName;
+
+        std::string newFilename = pathToSave + xml.substr(startName, nameSize) + ".xml";
+        std::cout << newFilename << std::endl;
+        aux::save_file(newFilename, xml);
+        filePaths.push_back(newFilename);
+    }
+
+    return std::move(filePaths);
+}
+
+std::vector<std::string> createPartXmls(const jinja2::ValuesList& parts, jinja2::Template& tmpl,
+                                        const std::string& pathToDocTags) {
+    if (!aux::makeDirectory(pathToDocTags))
+        return std::vector<std::string>();
+
+    if (parts.empty())
+        return std::vector<std::string>();
+
+    std::string pathToSave = pathToDocTags;
+    if (pathToDocTags.back() != '/')
+        pathToSave += '/';
+
+    std::vector<std::string> filePaths;
+    for (auto& part : parts) {
+        jinja2::ValuesMap temp;
+        temp["part"] = part;
+        std::string result = tmpl.RenderAsString(temp).value();
+        std::string filename = pathToSave + "part-" + part.asMap().at("hash").asString() + ".xml";
+        aux::save_file(filename, result);
+        filePaths.push_back(filename);
+    }
+    return std::move(filePaths);
 }
 
 void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int startLevel) {
