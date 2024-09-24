@@ -127,4 +127,11 @@ bool file_filter(std::string const& f) {
     return true;
 }
 
+std::string toLowerStr(const std::string& str) {
+    std::string res;
+    for(const char& c : str)
+        res += std::tolower(c);
+    return res;
+}
+
 }  // namespace aux

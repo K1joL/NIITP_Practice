@@ -29,7 +29,7 @@ bool makeDirectory(const std::string savePath = "");
 // allows do not include files and folders whose
 // name starts with a "."
 bool file_filter(std::string const& f);
-
+std::string toLowerStr(const std::string &str);
 }  // namespace aux
 
 #endif  //! AUXILIARY_HPP
