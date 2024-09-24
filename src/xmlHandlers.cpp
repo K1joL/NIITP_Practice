@@ -5,7 +5,47 @@ namespace xmlhandler {
 using std::cerr;
 using std::endl;
 
+void parseAttributes(std::stringstream& ss, std::shared_ptr<Tag>& tag) {
+    std::string attribute;
+    while (std::getline(ss, attribute, ' ')) {
+        std::size_t equalSign = attribute.find('=');
+        if (equalSign != std::string::npos) {
+            std::string attributeName = attribute.substr(0, equalSign);
+            // Check for quotes
+            if (attribute[equalSign + 1] == '\"' || attribute[equalSign + 1] == '\'') {
+                // Quoted value
+                std::size_t endQuote = attribute.find(attribute[equalSign + 1], equalSign + 2);
+                if (endQuote != std::string::npos) {
+                    std::string attributeValue = attribute.substr(equalSign + 2, endQuote - equalSign - 2);
+                    tag->attributes[attributeName] = attributeValue;
+                } else {
+                    std::stringstream ssCopy;
+                    ssCopy << ss.str().substr(ss.str().find(' ') + 1);
+                    std::string endAttribute;
+                    std::getline(ssCopy, endAttribute, ' ');
+                    if (endAttribute.find(attribute[equalSign + 1]) != std::string::npos) {
+                        std::string attributeValue =
+                            attribute.substr(equalSign + 2, endQuote - equalSign - 2);
+                        std::string endAttributeValue =
+                            endAttribute.substr(0, endAttribute.find(attribute[equalSign + 1]));
+                        tag->attributes[attributeName] = attributeValue + ' ' + endAttributeValue;
+                        std::getline(ss, attribute, ' ');
+                    }
+                }
+            } else {
+                // Unquoted value (single word)
+                std::string attributeValue = attribute.substr(equalSign + 1);
+                tag->attributes[attributeName] = attributeValue;
+            }
+        }
+    }
+}
+
 std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlContent) {
+    if (xmlContent.empty()) {
+        std::cerr << "Content is empty!" << std::endl;
+        return std::vector<std::shared_ptr<Tag>>();
+    }
     std::vector<std::shared_ptr<Tag>> tags;
     std::vector<std::shared_ptr<Tag>> tagStack;  // Stack to track nesting
     std::shared_ptr<Tag> currentTag = nullptr;
@@ -32,20 +72,8 @@ std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlContent) {
             newTag->name = tagName;
             // Parse attributes if found
             if (line.find('=') != std::string::npos) {
-                std::stringstream ss(
-                    line.substr(line.find(' ') + 1, line.find('>') - line.find(' ') - 1));
-                std::string attribute;
-                while (std::getline(ss, attribute, ' ')) {
-                    std::size_t equalSign = attribute.find('=');
-                    if (equalSign != std::string::npos) {
-                        std::string attributeName = attribute.substr(0, equalSign);
-                        std::string attributeValue = attribute.substr(equalSign + 1);
-                        // Remove quotes
-                        attributeValue.erase(0, 1);
-                        attributeValue.erase(attributeValue.size() - 1, 1);
-                        newTag->attributes[attributeName] = attributeValue;
-                    }
-                }
+                std::stringstream ss(line.substr(line.find(' ') + 1, line.find('>') - line.find(' ') - 1));
+                parseAttributes(ss, newTag);
             }
             // Add to parent's children
             if (currentTag != nullptr)
@@ -82,22 +110,10 @@ std::vector<std::shared_ptr<Tag>> getTags(const std::string& xmlContent) {
                 if (attrEnd == std::string::npos)
                     attrEnd = line.find(">");
                 std::stringstream ss(line.substr(line.find(' ') + 1, attrEnd - line.find(' ') - 1));
-                std::string attribute;
-                while (std::getline(ss, attribute, ' ')) {
-                    std::size_t equalSign = attribute.find('=');
-                    if (equalSign != std::string::npos) {
-                        std::string attributeName = attribute.substr(0, equalSign);
-                        std::string attributeValue = attribute.substr(equalSign + 1);
-                        // Remove quotes
-                        attributeValue.erase(0, 1);
-                        attributeValue.erase(attributeValue.size() - 1, 1);
-                        newTag->attributes[attributeName] = attributeValue;
-                    }
-                }
+                parseAttributes(ss, newTag);
             }
             if (line.find("</") != std::string::npos)
-                newTag->content +=
-                    line.substr(line.find('>') + 1, line.find("</") - line.find('>') - 1);
+                newTag->content += line.substr(line.find('>') + 1, line.find("</") - line.find('>') - 1);
             // Add to parent's children
             if (currentTag != nullptr)
                 currentTag->children.push_back(newTag);
@@ -131,10 +147,15 @@ std::vector<std::string> splitXML(const std::string& xmlContent, int nestingLeve
 
         if (currentLevel == nestingLevel) {
             traverseTag(currentTag, tagContent);
-            if (!tagContent.str().empty()) {
-                splitXmls.push_back(tagContent.str());
-                tagContent.str("");  // Clear content for next tag
-            }
+            std::string result = tagContent.str();
+            // remove end of line symbol(s)
+            if (result.size() >= 2 && result.substr(result.size() - 2) == "\r\n")
+                result.erase(result.size() - 2, result.size() - 1);
+            else if (result.size() >= 1 && result.back() == '\n')
+                result.pop_back();
+            if (!result.empty())
+                splitXmls.push_back(result);
+            tagContent.str("");  // Clear content for next tag
         } else if (currentLevel < nestingLevel) {
             // add child tags to queue
             for (const auto& child : currentTag->children) {
@@ -182,13 +203,17 @@ std::vector<std::string> splitDocument(const std::string& xmlDocPath, const std:
         int nameSize = xml.find_first_of("> ") - startName;
 
         std::string newFilename = xml.substr(startName, nameSize);
-        if(newFilename.find("AdditionalField") != std::string::npos){
-            startName = xml.find("<Hashsum>") + sizeof("<Hashsum>") - 1;
-            int nameSize = xml.rfind("</Hashsum>") - startName;
-            newFilename = "Part-" + xml.substr(startName, nameSize);
+        if (newFilename.find("AdditionalField") != std::string::npos) {
+            std::string hashsumTag = "Hashsum";
+            if (xml.find(hashsumTag) != std::string::npos) {
+                startName = xml.find(hashsumTag) + hashsumTag.size() + 2;
+                nameSize = xml.find("</", startName) - startName;
+                newFilename = "Part-" + xml.substr(startName, nameSize);
             }
+        } else if (xml.find("Contact") == std::string::npos)
+            continue;
         newFilename = pathToSave + newFilename + ".xml";
-        aux::save_file(newFilename, xml);
+        aux::saveFileWithDirectory(newFilename, xml);
         filePaths.push_back(newFilename);
     }
 
@@ -212,11 +237,59 @@ std::vector<std::string> createPartXmls(const jinja2::ValuesList& parts, jinja2:
         jinja2::ValuesMap temp;
         temp["part"] = part;
         std::string result = tmpl.RenderAsString(temp).value();
-        std::string filename = pathToSave + "FullPart-" + part.asMap().at("hash").asString() + ".xml";
-        aux::save_file(filename, result);
+        std::string filename = pathToSave;
+        if (!part.asMap().at(tmplkey::PART[3]).asList().empty())
+            filename += "Full";
+        filename += "Part-" + part.asMap().at(tmplkey::PART[2]).asString() + ".xml";
+        aux::saveFileWithDirectory(filename, result);
         filePaths.push_back(filename);
     }
     return std::move(filePaths);
+}
+
+jinja2::ValuesMap getPartsFromFiles(const std::vector<std::string>& partsPaths) {
+    if (partsPaths.empty()) {
+        std::cerr << "The files path vector is empty!" << std::endl;
+        return jinja2::ValuesMap();
+    }
+    jinja2::ValuesMap partsMap;
+    for (auto& partPath : partsPaths) {
+        std::ifstream partFile(partPath);
+        if (!partFile.is_open()) {
+            std::cerr << "Unable to open file " + partPath << std::endl;
+            continue;
+        }
+        std::string partContent;
+        std::string line;
+        while (std::getline(partFile, line))
+            partContent += line + '\n';
+        std::vector<std::shared_ptr<Tag>> tags = getTags(partContent);
+        if (tags.empty()) {
+            std::cerr << "Tag vector is empty in this file: " + partPath << std::endl;
+            continue;
+        }
+        jinja2::ValuesMap tagMap;
+        std::string tagName;
+        if (partContent.find("AdditionalField") != std::string::npos) {
+            tagName = "parts";
+            if (partsMap[tagName].isEmpty())
+                partsMap[tagName] = jinja2::ValuesList();
+            tagMap[tmplkey::PART[3]] = jinja2::ValuesList();
+        } else {
+            tagName = aux::toLowerStr(
+                partPath.substr(partPath.rfind('/') + 1, partPath.rfind('.') - partPath.rfind('/') - 1));
+        }
+        traverseTag(tags[0], tagMap, 0);
+        if (!tagMap.empty()) {
+            if (tagName != "parts")
+                partsMap.emplace(tagName, tagMap);
+            else {
+                partsMap.at(tagName).asList().push_back(tagMap);
+            }
+        }
+    }
+
+    return std::move(partsMap);
 }
 
 void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int startLevel) {
@@ -227,7 +300,7 @@ void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int star
             traverseTag(ch, ss, startLevel);
         return;
     }
-    ss << std::string(nestingLevel, '\t') << "<" << tag->name;
+    ss << std::string(nestingLevel - startLevel - 1, '\t') << "<" << tag->name;
     for (const auto& attr : tag->attributes) {
         ss << " " << attr.first << "=\"" << attr.second << "\"";
     }
@@ -237,9 +310,44 @@ void traverseTag(const std::shared_ptr<Tag> tag, std::stringstream& ss, int star
             traverseTag(child, ss, startLevel);
         }
 
-        ss << std::string(nestingLevel, '\t') << "</" << tag->name << ">" << std::endl;
+        ss << std::string(nestingLevel - startLevel - 1, '\t') << "</" << tag->name << ">" << std::endl;
     } else {
         ss << ">" << tag->content << "</" << tag->name << ">" << std::endl;
+    }
+    --nestingLevel;
+}
+
+void traverseTag(const std::shared_ptr<Tag> tag, jinja2::ValuesMap& tagMap, int startLevel) {
+    static int nestingLevel = 0;
+    ++nestingLevel;
+    if (nestingLevel < startLevel) {
+        for (auto& ch : tag->children)
+            traverseTag(ch, tagMap, startLevel);
+        return;
+    }
+    jinja2::ValuesMap fieldMap;
+    for (const auto& attr : tag->attributes) {
+        if (tag->name == "Value")
+            fieldMap.emplace(aux::toLowerStr(attr.first), attr.second);
+        else if (tag->name != "Document" && tag->name != "AdditionalField")
+            tagMap.emplace(aux::toLowerStr(tag->name), attr.second);
+        else
+            tagMap.emplace(aux::toLowerStr(attr.first), attr.second);
+    }
+    if (!tag->children.empty()) {
+        for (const auto child : tag->children) {
+            traverseTag(child, tagMap, startLevel);
+        }
+    } else {
+        if (!tag->content.empty())
+            if (tag->name == "Value" && tag->attributes.at("Name") == "Hashsum")
+                tagMap[aux::toLowerStr(tag->attributes.at("Name"))] = tag->content;
+            else if (tag->name == "Value") {
+                fieldMap[tmplkey::FIELD[0]] = tag->attributes.at("Name");
+                fieldMap[tmplkey::FIELD[1]] = tag->content;
+                tagMap[tmplkey::PART[3]].asList().push_back(fieldMap);
+            } else
+                tagMap.emplace(aux::toLowerStr(tag->name), tag->content);
     }
     --nestingLevel;
 }
