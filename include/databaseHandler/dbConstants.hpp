@@ -12,8 +12,7 @@ const vector<string> DOCINFO = {"header", "sender",    "recepient", "documentlis
 const vector<string> HEADER = {"messageid", "time"};
 const vector<string> CONTACT = {"organization", "shortname", "fullname", "post", "index", "econtact"};
 const vector<string> DOCUMENTLIST = {"documentid", "number", "date", "consists", "annotation", "rubric"};
-const vector<string> PART_HASH = {"name", "type", "hashsum"};
-const vector<string> PART_FIELDS = {"name", "type", "fields"};
+const vector<string> PART = {"name", "type", "hashsum", "fields"};
 const vector<string> FIELD = {"name", "value"};
 
 }  // namespace tmplkey
