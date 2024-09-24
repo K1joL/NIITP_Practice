@@ -32,12 +32,12 @@ jinja2::ValuesMap getValuesMapFromDocument(const std::string &docNumber, const s
         mHeader[tmplkey::HEADER[i]] = headerVect[i];
     }
     std::vector<std::string> senderVect = sender->getData();
-    for (int i = 0; i < tmplkey::SENDER.size(); ++i) {
-        mSender[tmplkey::SENDER[i]] = senderVect[i];
+    for (int i = 0; i < tmplkey::CONTACT.size(); ++i) {
+        mSender[tmplkey::CONTACT[i]] = senderVect[i];
     }
     std::vector<std::string> recepientVect = recepient->getData();
-    for (int i = 0; i < tmplkey::RECEPIENT.size(); ++i) {
-        mRecepient[tmplkey::RECEPIENT[i]] = recepientVect[i];
+    for (int i = 0; i < tmplkey::CONTACT.size(); ++i) {
+        mRecepient[tmplkey::CONTACT[i]] = recepientVect[i];
     }
     // documentList
     std::vector<std::string> docVect = doc->getData();
@@ -45,18 +45,18 @@ jinja2::ValuesMap getValuesMapFromDocument(const std::string &docNumber, const s
         mDocumentlist[tmplkey::DOCUMENTLIST[i]] = docVect[i];
     }
     std::vector<std::string> authorVect = author->getData();
-    for (int i = 0; i < tmplkey::AUTHOR.size(); ++i) {
-        mAuthor[tmplkey::AUTHOR[i]] = authorVect[i];
+    for (int i = 0; i < tmplkey::CONTACT.size(); ++i) {
+        mAuthor[tmplkey::CONTACT[i]] = authorVect[i];
     }
     std::vector<std::string> addresseeVect = addressee[0]->getData();
-    for (int i = 0; i < tmplkey::ADDRESSEE.size(); ++i) {
-        mAddressee[tmplkey::ADDRESSEE[i]] = addresseeVect[i];
+    for (int i = 0; i < tmplkey::CONTACT.size(); ++i) {
+        mAddressee[tmplkey::CONTACT[i]] = addresseeVect[i];
     }
     for (auto &part : parts) {
         jinja2::ValuesMap tempPart;
         std::vector<std::string> partData = part->getData();
-        for (int i = 0; i < tmplkey::PART_HASH.size(); ++i)
-            tempPart[tmplkey::PART_HASH[i]] = partData[i];
+        for (int i = 0; i < tmplkey::PART.size() - 1; ++i)
+            tempPart[tmplkey::PART[i]] = partData[i];
         mParts.emplace_back(tempPart);
     }
 
@@ -71,8 +71,7 @@ jinja2::ValuesMap getValuesMapFromDocument(const std::string &docNumber, const s
     return std::move(mDocinfo);
 }
 
-std::shared_ptr<Document> selectDocument(const std::shared_ptr<database> db,
-                                         const std::string &docNumber) {
+std::shared_ptr<Document> selectDocument(const std::shared_ptr<database> db, const std::string &docNumber) {
     typedef odb::query<Document> query;
     typedef odb::result<Document> result;
     transaction t(db->begin());
@@ -81,8 +80,7 @@ std::shared_ptr<Document> selectDocument(const std::shared_ptr<database> db,
     return doc;
 }
 
-std::shared_ptr<DocInfo> selectDocInfo(const std::shared_ptr<database> db,
-                                       unsigned long documentId) {
+std::shared_ptr<DocInfo> selectDocInfo(const std::shared_ptr<database> db, unsigned long documentId) {
     typedef odb::query<DocInfo> query;
     typedef odb::result<DocInfo> result;
     transaction t(db->begin());
@@ -91,12 +89,26 @@ std::shared_ptr<DocInfo> selectDocInfo(const std::shared_ptr<database> db,
     return docinfo;
 }
 
-std::shared_ptr<Contact> selectContact(const std::shared_ptr<database> db,
-                                       unsigned long contactId) {
+std::shared_ptr<Contact> selectContact(const std::shared_ptr<database> db, unsigned long contactId) {
     typedef odb::query<Contact> query;
     typedef odb::result<Contact> result;
     transaction t(db->begin());
     std::shared_ptr<Contact> contact = db->query_one<Contact>(query::contactid == contactId);
+    t.commit();
+
+    return contact;
+}
+
+std::shared_ptr<Contact> selectContact(const std::shared_ptr<database> db, unsigned long organization,
+                                       const std::string &shortname, const std::string &fullname,
+                                       const std::string &post, const std::string &index,
+                                       const std::string &econtact) {
+    typedef odb::query<Contact> query;
+    typedef odb::result<Contact> result;
+    transaction t(db->begin());
+    std::shared_ptr<Contact> contact = db->query_one<Contact>(
+        query::organization == organization && query::shortname == shortname && query::fullname == fullname &&
+        query::post == post && query::index == index && query::econtact == econtact);
     t.commit();
 
     return contact;
@@ -115,11 +127,10 @@ std::vector<std::shared_ptr<Contact>> selectAddressees(const std::shared_ptr<dat
     t.commit();
     for (auto &id : contactIds)
         addressees.push_back(selectContact(db, id));
-    return addressees;
+    return std::move(addressees);
 }
 
-std::vector<std::shared_ptr<Part>> selectParts(const std::shared_ptr<database> db,
-                                               unsigned long docInfoId) {
+std::vector<std::shared_ptr<Part>> selectParts(const std::shared_ptr<database> db, unsigned long docInfoId) {
     typedef odb::query<Part> query;
     typedef odb::result<Part> result;
     std::vector<std::shared_ptr<Part>> parts;
@@ -134,8 +145,7 @@ std::vector<std::shared_ptr<Part>> selectParts(const std::shared_ptr<database> d
     return std::move(parts);
 }
 
-std::vector<std::shared_ptr<Field>> selectFields(const std::shared_ptr<database> db,
-                                                 unsigned long partId) {
+std::vector<std::shared_ptr<Field>> selectFields(const std::shared_ptr<database> db, unsigned long partId) {
     typedef odb::query<Field> query;
     typedef odb::result<Field> result;
     std::vector<std::shared_ptr<Field>> fields;
@@ -160,15 +170,14 @@ std::shared_ptr<Part> selectPart(const std::shared_ptr<database> db, const std::
     return part;
 }
 
-jinja2::ValuesList getPartsFromDocument(const std::string &docNumber,
-                                        const jinja2::ValuesList &partsList,
+jinja2::ValuesList getPartsFromDocument(const std::string &docNumber, const jinja2::ValuesList &partsList,
                                         const std::string &dbUser, const std::string &dbPass,
                                         const std::string &dbName) {
     std::shared_ptr<database> db(new odb::pgsql::database(dbUser, dbPass, dbName));
     std::shared_ptr<Document> doc;
     std::shared_ptr<DocInfo> docinfo;
     jinja2::ValuesList mParts;
-    if (partsList.empty()) {  
+    if (partsList.empty()) {
         // select document
         doc = selectDocument(db, docNumber);
         // select docinfo
@@ -177,8 +186,8 @@ jinja2::ValuesList getPartsFromDocument(const std::string &docNumber,
         for (auto &part : selectParts(db, docinfo->getId())) {
             jinja2::ValuesMap tempPart;
             std::vector<std::string> partData = part->getData();
-            for (int i = 0; i < tmplkey::PART_HASH.size(); ++i)
-                tempPart[tmplkey::PART_HASH[i]] = partData[i];
+            for (int i = 0; i < tmplkey::PART.size() - 1; ++i)
+                tempPart[tmplkey::PART[i]] = partData[i];
             mParts.emplace_back(std::move(tempPart));
         }
     } else
@@ -186,19 +195,51 @@ jinja2::ValuesList getPartsFromDocument(const std::string &docNumber,
 
     for (auto &part : mParts) {
         jinja2::ValuesList fields;
-        std::shared_ptr<Part> dbPart = selectPart(db, part.asMap().at("hash").asString());
+        std::shared_ptr<Part> dbPart = selectPart(db, part.asMap().at(tmplkey::PART[2]).asString());
         // select fields
-        for(auto &field : selectFields(db, dbPart->getPartId())){
+        for (auto &field : selectFields(db, dbPart->getPartId())) {
             // filling the map
             jinja2::ValuesMap mField;
-            for(int i = 0; i < tmplkey::FIELD.size(); ++i)
+            for (int i = 0; i < tmplkey::FIELD.size(); ++i)
                 mField[tmplkey::FIELD[i]] = field->getData()[i];
             fields.push_back(std::move(mField));
         }
-        part.asMap().emplace("fields", fields);
+        part.asMap().emplace(tmplkey::PART.back(), fields);
     }
 
     return mParts;
+}
+
+bool checkExistence(const std::shared_ptr<database> db, const jinja2::ValuesMap &part) {
+    if (part.empty())
+        return false;
+
+    // if part is contact
+    auto it = part.find(tmplkey::CONTACT[0]);
+    if (it != part.end())
+        if (selectContact(db, stoi(part.at(tmplkey::CONTACT[0]).asString()),
+                          part.at(tmplkey::CONTACT[1]).asString(), part.at(tmplkey::CONTACT[2]).asString(),
+                          part.at(tmplkey::CONTACT[3]).asString(), part.at(tmplkey::CONTACT[4]).asString(),
+                          part.at(tmplkey::CONTACT[5]).asString()) != nullptr)
+            return true;
+    // if part is Document
+    it = part.find(tmplkey::DOCUMENTLIST[1]);
+    if (it != part.end())
+        if (selectDocument(db, it->second.asString()) != nullptr)
+            return true;
+    // if part is Additionalfield
+    it = part.find(tmplkey::PART[2]);
+    if (it != part.end())
+        if (selectPart(db, it->second.asString()) != nullptr)
+            return true;
+
+    return false;
+}
+
+bool checkExistence(const jinja2::ValuesMap &part, const std::string &dbUser, const std::string &dbPass,
+                    const std::string &dbName) {
+    std::shared_ptr<database> db(new odb::pgsql::database(dbUser, dbPass, dbName));
+    return checkExistence(db, part);
 }
 
 }  // namespace dbHandler
