@@ -10,12 +10,9 @@ using std::vector;
 const vector<string> DOCINFO = {"header", "sender",    "recepient", "documentlist",
                           "author", "addressee", "parts"};
 const vector<string> HEADER = {"messageid", "time"};
-const vector<string> SENDER = {"organization", "shortname", "fullname", "post", "index", "econtact"};
-const vector<string> RECEPIENT = {"organization", "shortname", "fullname", "post", "index", "econtact"};
-const vector<string> AUTHOR = {"organization", "shortname", "fullname", "post", "index", "econtact"};
-const vector<string> ADDRESSEE = {"organization", "shortname", "fullname", "post", "index", "econtact"};
+const vector<string> CONTACT = {"organization", "shortname", "fullname", "post", "index", "econtact"};
 const vector<string> DOCUMENTLIST = {"documentid", "number", "date", "consists", "annotation", "rubric"};
-const vector<string> PART_HASH = {"name", "type", "hash"};
+const vector<string> PART_HASH = {"name", "type", "hashsum"};
 const vector<string> PART_FIELDS = {"name", "type", "fields"};
 const vector<string> FIELD = {"name", "value"};
 
