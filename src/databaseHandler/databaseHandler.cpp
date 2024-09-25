@@ -210,34 +210,40 @@ jinja2::ValuesList getPartsFromDocument(const std::string &docNumber, const jinj
     return mParts;
 }
 
-bool checkExistence(const std::shared_ptr<database> db, const jinja2::ValuesMap &part) {
+unsigned long checkExistence(const std::shared_ptr<database> db, const jinja2::ValuesMap &part) {
     if (part.empty())
-        return false;
+        return -1;
 
     // if part is contact
     auto it = part.find(tmplkey::CONTACT[0]);
-    if (it != part.end())
-        if (selectContact(db, stoi(part.at(tmplkey::CONTACT[0]).asString()),
-                          part.at(tmplkey::CONTACT[1]).asString(), part.at(tmplkey::CONTACT[2]).asString(),
-                          part.at(tmplkey::CONTACT[3]).asString(), part.at(tmplkey::CONTACT[4]).asString(),
-                          part.at(tmplkey::CONTACT[5]).asString()) != nullptr)
-            return true;
+    if (it != part.end()) {
+        auto ptrContact = selectContact(
+            db, stoi(part.at(tmplkey::CONTACT[0]).asString()), part.at(tmplkey::CONTACT[1]).asString(),
+            part.at(tmplkey::CONTACT[2]).asString(), part.at(tmplkey::CONTACT[3]).asString(),
+            part.at(tmplkey::CONTACT[4]).asString(), part.at(tmplkey::CONTACT[5]).asString());
+        if (ptrContact != nullptr)
+            return ptrContact->getId();
+    }
     // if part is Document
     it = part.find(tmplkey::DOCUMENTLIST[1]);
-    if (it != part.end())
-        if (selectDocument(db, it->second.asString()) != nullptr)
-            return true;
+    if (it != part.end()) {
+        auto ptrDocument = selectDocument(db, it->second.asString());
+        if (ptrDocument != nullptr)
+            return ptrDocument->getId();
+    }
     // if part is Additionalfield
     it = part.find(tmplkey::PART[2]);
-    if (it != part.end())
-        if (selectPart(db, it->second.asString()) != nullptr)
-            return true;
+    if (it != part.end()) {
+        auto ptrPart = selectPart(db, it->second.asString());
+        if (ptrPart != nullptr)
+            return ptrPart->getPartId();
+    }
 
-    return false;
+    return -1;
 }
 
-bool checkExistence(const jinja2::ValuesMap &part, const std::string &dbUser, const std::string &dbPass,
-                    const std::string &dbName) {
+unsigned long checkExistence(const jinja2::ValuesMap &part, const std::string &dbUser,
+                             const std::string &dbPass, const std::string &dbName) {
     std::shared_ptr<database> db(new odb::pgsql::database(dbUser, dbPass, dbName));
     return checkExistence(db, part);
 }

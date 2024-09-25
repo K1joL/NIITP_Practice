@@ -19,14 +19,29 @@ public:
           m_index(index),
           m_econtact(econtact) {
     }
-    int getOrganization() const { return m_organization; }
-    std::string getShortName() const { return m_shortname; }
-    std::string getFullName() const { return m_fullname; }
-    std::string getPost() const { return m_post; }
-    std::string getIndex() const { return m_index; }
-    std::string getEcontact() const { return m_econtact; }
-    
-    std::vector<std::string> getData() const{
+    unsigned long getId() const {
+        return m_contactid;
+    }
+    int getOrganization() const {
+        return m_organization;
+    }
+    std::string getShortName() const {
+        return m_shortname;
+    }
+    std::string getFullName() const {
+        return m_fullname;
+    }
+    std::string getPost() const {
+        return m_post;
+    }
+    std::string getIndex() const {
+        return m_index;
+    }
+    std::string getEcontact() const {
+        return m_econtact;
+    }
+
+    std::vector<std::string> getData() const {
         std::vector<std::string> v;
         v.push_back(std::to_string(m_organization));
         v.push_back(m_shortname);
@@ -36,6 +51,7 @@ public:
         v.push_back(m_econtact);
         return v;
     }
+
 private:
     friend class odb::access;
 

@@ -42,8 +42,8 @@ jinja2::ValuesList getPartsFromDocument(const std::string &docNumber,
                                         const std::string &dbPass = "postgres",
                                         const std::string &dbName = "transferdb");
 
-bool checkExistence(const std::shared_ptr<database> db, const jinja2::ValuesMap &part);
-bool checkExistence(const jinja2::ValuesMap &part, const std::string &dbUser = "postgres",
+unsigned long checkExistence(const std::shared_ptr<database> db, const jinja2::ValuesMap &part);
+unsigned long checkExistence(const jinja2::ValuesMap &part, const std::string &dbUser = "postgres",
                     const std::string &dbPass = "postgres", const std::string &dbName = "transferdb");
 
 }  // namespace dbHandler
