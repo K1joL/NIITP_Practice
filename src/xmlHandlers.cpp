@@ -247,16 +247,16 @@ std::vector<std::string> createPartXmls(const jinja2::ValuesList& parts, jinja2:
     return std::move(filePaths);
 }
 
-jinja2::ValuesMap getPartsFromFiles(const std::vector<std::string>& partsPaths) {
-    if (partsPaths.empty()) {
+jinja2::ValuesMap getTagPartsFromFiles(const std::vector<std::string>& tagPartsPaths) {
+    if (tagPartsPaths.empty()) {
         std::cerr << "The files path vector is empty!" << std::endl;
         return jinja2::ValuesMap();
     }
     jinja2::ValuesMap partsMap;
-    for (auto& partPath : partsPaths) {
-        std::ifstream partFile(partPath);
+    for (auto& tagPartPath : tagPartsPaths) {
+        std::ifstream partFile(tagPartPath);
         if (!partFile.is_open()) {
-            std::cerr << "Unable to open file " + partPath << std::endl;
+            std::cerr << "Unable to open file " + tagPartPath << std::endl;
             continue;
         }
         std::string partContent;
@@ -265,19 +265,21 @@ jinja2::ValuesMap getPartsFromFiles(const std::vector<std::string>& partsPaths) 
             partContent += line + '\n';
         std::vector<std::shared_ptr<Tag>> tags = getTags(partContent);
         if (tags.empty()) {
-            std::cerr << "Tag vector is empty in this file: " + partPath << std::endl;
+            std::cerr << "Tag vector is empty in this file: " + tagPartPath << std::endl;
             continue;
         }
         jinja2::ValuesMap tagMap;
         std::string tagName;
+        // if found part
         if (partContent.find("AdditionalField") != std::string::npos) {
+            // Prepare maps for correct filling
             tagName = "parts";
             if (partsMap[tagName].isEmpty())
                 partsMap[tagName] = jinja2::ValuesList();
             tagMap[tmplkey::PART[3]] = jinja2::ValuesList();
         } else {
             tagName = aux::toLowerStr(
-                partPath.substr(partPath.rfind('/') + 1, partPath.rfind('.') - partPath.rfind('/') - 1));
+                tagPartPath.substr(tagPartPath.rfind('/') + 1, tagPartPath.rfind('.') - tagPartPath.rfind('/') - 1));
         }
         traverseTag(tags[0], tagMap, 0);
         if (!tagMap.empty()) {

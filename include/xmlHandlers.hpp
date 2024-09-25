@@ -42,7 +42,7 @@ std::vector<std::string> createPartXmls(
     const jinja2::ValuesList& parts, jinja2::Template& tmpl,
     const std::string& pathToDocTags = myconst::DEFAULT_TAGS_PATH);
 
-jinja2::ValuesMap getPartsFromFiles(const std::vector<std::string>& partsPaths);
+jinja2::ValuesMap getTagPartsFromFiles(const std::vector<std::string>& tagPartsPaths);
 }  // namespace xmlhandler
 
 #endif  //! XML_HANDLERS_HPP
