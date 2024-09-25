@@ -13,8 +13,23 @@ public:
     Part(unsigned long docInfoId, std::string name, std::string type, std::string hash)
         : m_docinfoid(docInfoId), m_name(name), m_type(type), m_hash(hash) {
     }
+    void setDocInfoId(unsigned long docInfoId) {
+        m_docinfoid = docInfoId;
+    }
+    
+    void setName(std::string name) {
+        m_name = std::move(name);
+    }
+    
+    void setType(std::string type) {
+        m_type = std::move(type);
+    }
+    
+    void setHash(std::string hash) {
+        m_hash = std::move(hash);
+    }
 
-    unsigned long getPartId() const {
+    unsigned long getId() const {
         return m_partid;
     }
     unsigned long getDocInfoId() const {
