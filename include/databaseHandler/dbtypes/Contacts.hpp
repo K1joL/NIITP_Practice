@@ -19,6 +19,31 @@ public:
           m_index(index),
           m_econtact(econtact) {
     }
+
+    void setOrganization(int organization) {
+        this->m_organization = organization;
+    }
+
+    void setShortName(const std::string &shortName) {
+        this->m_shortname = shortName;
+    }
+
+    void setFullName(const std::string &fullName) {
+        this->m_fullname = fullName;
+    }
+
+    void setPost(const std::string &post) {
+        this->m_post = post;
+    }
+
+    void setIndex(const std::string &index) {
+        this->m_index = index;
+    }
+
+    void setEcontact(const std::string &econtact) {
+        this->m_econtact = econtact;
+    }
+
     unsigned long getId() const {
         return m_contactid;
     }
