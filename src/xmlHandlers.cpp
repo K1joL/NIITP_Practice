@@ -210,6 +210,13 @@ std::vector<std::string> splitDocument(const std::string& xmlDocPath, const std:
                 nameSize = xml.find("</", startName) - startName;
                 newFilename = "Part-" + xml.substr(startName, nameSize);
             }
+        } else if (newFilename.find("Document") != std::string::npos) {
+            std::string Number = "Number";
+            if (xml.find(Number) != std::string::npos) {
+                startName = xml.find(Number) + Number.size() + 1;
+                nameSize = xml.find("</", startName) - startName;
+                newFilename = "Document-" + xml.substr(startName, nameSize);
+            }
         } else if (xml.find("Contact") == std::string::npos)
             continue;
         newFilename = pathToSave + newFilename + ".xml";
@@ -263,6 +270,11 @@ jinja2::ValuesMap getTagPartsFromFiles(const std::vector<std::string>& tagPartsP
         std::string line;
         while (std::getline(partFile, line))
             partContent += line + '\n';
+        // Separate Document info from tags2
+        if (partContent.find("Document") != std::string::npos) {
+            partContent = partContent.substr(0, partContent.find("<Author>"));
+            partContent += "<Document>";
+        }
         std::vector<std::shared_ptr<Tag>> tags = getTags(partContent);
         if (tags.empty()) {
             std::cerr << "Tag vector is empty in this file: " + tagPartPath << std::endl;
@@ -270,20 +282,24 @@ jinja2::ValuesMap getTagPartsFromFiles(const std::vector<std::string>& tagPartsP
         }
         jinja2::ValuesMap tagMap;
         std::string tagName;
-        // if found part
-        if (partContent.find("AdditionalField") != std::string::npos) {
+        if (partContent.find("Document") != std::string::npos) {
+            tagName = "documents";
+            if (partsMap[tagName].isEmpty())
+                partsMap[tagName] = jinja2::ValuesList();
+        } else if (partContent.find("AdditionalField") != std::string::npos) {
+            // if found part
             // Prepare maps for correct filling
             tagName = "parts";
             if (partsMap[tagName].isEmpty())
                 partsMap[tagName] = jinja2::ValuesList();
             tagMap[tmplkey::PART[3]] = jinja2::ValuesList();
         } else {
-            tagName = aux::toLowerStr(
-                tagPartPath.substr(tagPartPath.rfind('/') + 1, tagPartPath.rfind('.') - tagPartPath.rfind('/') - 1));
+            tagName = aux::toLowerStr(tagPartPath.substr(
+                tagPartPath.rfind('/') + 1, tagPartPath.rfind('.') - tagPartPath.rfind('/') - 1));
         }
         traverseTag(tags[0], tagMap, 0);
         if (!tagMap.empty()) {
-            if (tagName != "parts")
+            if (tagName != "parts" && tagName != "documents")
                 partsMap.emplace(tagName, tagMap);
             else {
                 partsMap.at(tagName).asList().push_back(tagMap);
