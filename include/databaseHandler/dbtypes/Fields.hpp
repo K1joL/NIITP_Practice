@@ -13,10 +13,21 @@ public:
     Field(unsigned long partid, std::string name, std::string value)
         : m_partid(partid), m_name(name), m_value(value) {
     }
-    unsigned long getFieldId() const { return m_fieldid; }
-    unsigned long getPartId() const { return m_partid; }
-    std::string getName() const { return m_name; }
-    std::string getValue() const { return m_value; }
+    void setPartId(unsigned long partId) {
+        m_partid = partId;
+    }
+    unsigned long getFieldId() const {
+        return m_fieldid;
+    }
+    unsigned long getPartId() const {
+        return m_partid;
+    }
+    std::string getName() const {
+        return m_name;
+    }
+    std::string getValue() const {
+        return m_value;
+    }
     std::vector<std::string> getData() {
         std::vector<std::string> v;
         v.push_back(m_name);
