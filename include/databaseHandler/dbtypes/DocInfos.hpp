@@ -11,14 +11,28 @@ class DocInfo {
 public:
     DocInfo() {
     }
-    DocInfo(std::string messageId, boost::gregorian::date time, unsigned long senderId,
-            unsigned long recepientId, unsigned long authorId, unsigned documentId)
+    DocInfo(std::string messageId, boost::gregorian::date time, std::string messageType,
+            unsigned long senderId, unsigned long recepientId)
         : m_messageid(messageId),
           m_time(time),
+          m_messagetype(messageType),
           m_senderid(senderId),
-          m_recepientid(recepientId),
-          m_authorid(authorId),
-          m_documentid(documentId) {
+          m_recepientid(recepientId) {
+    }
+    void setMessageId(const std::string& messageId) {
+        m_messageid = messageId;
+    }
+    void setTime(const boost::gregorian::date& time) {
+        m_time = time;
+    }
+    void setMessageType(const std::string& messageType) {
+        m_messagetype = messageType;
+    }
+    void setSenderId(unsigned long senderId) {
+        m_senderid = senderId;
+    }
+    void setRecipientId(unsigned long recepientId) {
+        m_recepientid = recepientId;
     }
 
     unsigned long getId() const {
@@ -30,14 +44,11 @@ public:
     unsigned long getRecepientId() const {
         return m_recepientid;
     }
-    unsigned long getAuthorId() const {
-        return m_authorid;
-    }
-    unsigned long getDocumentId() const {
-        return m_documentid;
-    }
     std::string getMessageId() const {
         return m_messageid;
+    }
+    std::string getMessageType() const {
+        return m_messagetype;
     }
     boost::gregorian::date getTime() const {
         return m_time;
@@ -49,8 +60,6 @@ public:
         v.push_back(boost::gregorian::to_iso_extended_string(m_time));
         v.push_back(std::to_string(m_senderid));
         v.push_back(std::to_string(m_recepientid));
-        v.push_back(std::to_string(m_authorid));
-        v.push_back(std::to_string(m_documentid));
         return v;
     }
 
@@ -62,10 +71,9 @@ private:
 
     std::string m_messageid;
     boost::gregorian::date m_time;
+    std::string m_messagetype;
     unsigned long m_senderid;
     unsigned long m_recepientid;
-    unsigned long m_authorid;
-    unsigned long m_documentid;
 };
 
 #endif  //! DB_DOCINFOS_HPP

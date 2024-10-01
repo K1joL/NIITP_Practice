@@ -7,8 +7,8 @@
 class Addressee{
 public:
     Addressee(){}
-    Addressee(unsigned long docInfoId, unsigned long contactId)
-    : m_docinfoid(docInfoId),
+    Addressee(unsigned long documentId, unsigned long contactId)
+    : m_documentid(documentId),
     m_contactid(contactId)
     {}
 
@@ -20,7 +20,7 @@ private:
     #pragma db id auto
     unsigned long m_addresseeid;
 
-    unsigned long m_docinfoid;
+    unsigned long m_documentid;
     unsigned long m_contactid;
 };
 

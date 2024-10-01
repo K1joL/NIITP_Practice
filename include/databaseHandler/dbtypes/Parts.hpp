@@ -10,11 +10,11 @@ class Part {
 public:
     Part() {
     }
-    Part(unsigned long docInfoId, std::string name, std::string type, std::string hash)
-        : m_docinfoid(docInfoId), m_name(name), m_type(type), m_hash(hash) {
+    Part(unsigned long documentId, std::string name, std::string type, std::string hash)
+        : m_documentid(documentId), m_name(name), m_type(type), m_hash(hash) {
     }
-    void setDocInfoId(unsigned long docInfoId) {
-        m_docinfoid = docInfoId;
+    void setDocumentId(unsigned long documentId) {
+        m_documentid = documentId;
     }
     
     void setName(std::string name) {
@@ -32,8 +32,8 @@ public:
     unsigned long getId() const {
         return m_partid;
     }
-    unsigned long getDocInfoId() const {
-        return m_docinfoid;
+    unsigned long getDocumentId() const {
+        return m_documentid;
     }
     std::string getName() const {
         return m_name;
@@ -58,7 +58,7 @@ private:
 #pragma db id auto
     unsigned long m_partid;
 
-    unsigned long m_docinfoid;
+    unsigned long m_documentid;
     std::string m_name;
     std::string m_type;
     std::string m_hash;
