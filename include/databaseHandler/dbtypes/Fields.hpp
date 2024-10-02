@@ -16,7 +16,7 @@ public:
     void setPartId(unsigned long partId) {
         m_partid = partId;
     }
-    unsigned long getFieldId() const {
+    unsigned long getId() const {
         return m_fieldid;
     }
     unsigned long getPartId() const {
